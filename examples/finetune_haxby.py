@@ -8,6 +8,7 @@ from torch import nn
 from torch.utils.data import Dataset, DataLoader
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
+from nilearn.image import clean_img
 
 # Local import fallback so examples run without package install
 try:
@@ -53,7 +54,12 @@ def load_encoder_weights(encoder: nn.Module, ckpt_path: str):
 def _read_haxby_labels(targets_txt_path: str) -> List[str]:
     # Load CSV-like file with numpy to avoid requiring pandas
     # The file has headers, including a column named "labels" in most releases
-    rec = np.recfromcsv(targets_txt_path)
+    # Specify encoding to avoid VisibleDeprecationWarning in newer NumPy
+    try:
+        rec = np.recfromcsv(targets_txt_path, encoding="utf-8")
+    except TypeError:
+        # Fallback for very old NumPy without the encoding arg
+        rec = np.recfromcsv(targets_txt_path)
     if "labels" in rec.dtype.names:
         labels = rec["labels"].astype(str).tolist()
     elif "stim" in rec.dtype.names:
@@ -65,6 +71,8 @@ def _read_haxby_labels(targets_txt_path: str) -> List[str]:
             labels = [str(x[-1]) for x in labels]
         else:
             labels = [str(x) for x in labels]
+    # Normalize labels: strip whitespace and lowercase for robust matching
+    labels = [l.strip().lower() for l in labels]
     return labels
 
 
@@ -73,24 +81,40 @@ def _get_label_mapping(labels: List[str], ignore_label: str = "rest") -> Dict[st
     return {lab: idx for idx, lab in enumerate(unique)}
 
 
-def _resize_spatial(arr: np.ndarray, target_spatial: Tuple[int, int, int]) -> np.ndarray:
+def _pad_or_crop_spatial(arr: np.ndarray, target_spatial: Tuple[int, int, int]) -> np.ndarray:
+    # Pad (and if necessary center-crop) spatial dims to target size without resampling
     # arr: (H, W, D, T) float32
     assert arr.ndim == 4
     h, w, d, t = arr.shape
     target_h, target_w, target_d = target_spatial
-    out = np.empty((target_h, target_w, target_d, t), dtype=np.float32)
-    for i in range(t):
-        vol_hwd = torch.from_numpy(arr[..., i]).float()  # (H, W, D)
-        vol_dhw = vol_hwd.permute(2, 0, 1).unsqueeze(0).unsqueeze(0)  # (1,1,D,H,W)
-        vol_resized = torch.nn.functional.interpolate(
-            vol_dhw,
-            size=(target_d, target_h, target_w),
-            mode="trilinear",
-            align_corners=False,
+
+    def _compute_slices_and_pad(current: int, target: int):
+        if current == target:
+            return slice(0, current), (0, 0)
+        if current < target:
+            # symmetric padding
+            before = (target - current) // 2
+            after = target - current - before
+            return slice(0, current), (before, after)
+        # current > target: center crop
+        start = (current - target) // 2
+        end = start + target
+        return slice(start, end), (0, 0)
+
+    hs, hpad = _compute_slices_and_pad(h, target_h)
+    ws, wpad = _compute_slices_and_pad(w, target_w)
+    ds, dpad = _compute_slices_and_pad(d, target_d)
+
+    cropped = arr[hs, ws, ds, :]
+    if any(p != (0, 0) for p in (hpad, wpad, dpad)):
+        padded = np.pad(
+            cropped,
+            pad_width=(hpad, wpad, dpad, (0, 0)),
+            mode="constant",
+            constant_values=0.0,
         )
-        vol_hwd_resized = vol_resized.squeeze(0).squeeze(0).permute(1, 2, 0)  # (H', W', D')
-        out[..., i] = vol_hwd_resized.numpy()
-    return out
+        return padded.astype(np.float32, copy=False)
+    return cropped.astype(np.float32, copy=False)
 
 
 class HaxbyVolumeDataset(Dataset):
@@ -120,14 +144,15 @@ class HaxbyVolumeDataset(Dataset):
 
         # Load image as float32 array (H,W,D,T)
         img = image.load_img(func_path)
+        img = clean_img(img, standardize='zscore_sample')
         arr = img.get_fdata().astype(np.float32)
         # Basic standardization (per-volume z-score across voxels)
-        arr = (arr - np.mean(arr, axis=(0, 1, 2), keepdims=True)) / (
-            np.std(arr, axis=(0, 1, 2), keepdims=True) + 1e-6
-        )
+        # arr = (arr - np.mean(arr, axis=(0, 1, 2), keepdims=True)) / (
+        #     np.std(arr, axis=(0, 1, 2), keepdims=True) + 1e-6
+        # )
 
-        # Resize spatial dims to (96,96,96)
-        arr = _resize_spatial(arr, (96, 96, 96))
+        # Pad (or center-crop if larger) spatial dims to (96,96,96)
+        arr = _pad_or_crop_spatial(arr, (96, 96, 96))
 
         # Filter labels and build mapping
         if categories is None:
@@ -141,6 +166,8 @@ class HaxbyVolumeDataset(Dataset):
                 "shoe",
                 "scrambledpix",
             ]
+        # Normalize categories to lowercase for consistent matching
+        categories = [c.strip().lower() for c in categories]
         label_to_idx = {lab: i for i, lab in enumerate(categories)}
 
         # Build samples as contiguous windows of length seq_len with constant label (non-rest)
@@ -148,11 +175,29 @@ class HaxbyVolumeDataset(Dataset):
         t_total = arr.shape[3]
         for start in range(0, t_total - seq_len + 1):
             window_labels = labels_all[start : start + seq_len]
+            # Skip if any label is not part of our target categories
             if any(lab not in label_to_idx for lab in window_labels):
                 continue
+            # Require a constant label across the window
             if not all(l == window_labels[0] for l in window_labels):
                 continue
             X.append((start, label_to_idx[window_labels[0]]))
+
+        # If no samples found (e.g., label names mismatch), fall back to using
+        # any non-rest labels present in the file to build categories and samples.
+        if len(X) == 0:
+            observed_labels = [l for l in labels_all if l != "rest"]
+            unique_obs = sorted(list({l for l in observed_labels}))
+            if len(unique_obs) > 0:
+                label_to_idx = {lab: i for i, lab in enumerate(unique_obs)}
+                categories = unique_obs
+                for start in range(0, t_total - seq_len + 1):
+                    window_labels = labels_all[start : start + seq_len]
+                    if any(lab not in label_to_idx for lab in window_labels):
+                        continue
+                    if not all(l == window_labels[0] for l in window_labels):
+                        continue
+                    X.append((start, label_to_idx[window_labels[0]]))
 
         # Train/val split by index
         indices = np.arange(len(X))
@@ -176,7 +221,7 @@ class HaxbyVolumeDataset(Dataset):
         h, w, d, _ = self.arr.shape
         t = self.seq_len
         vol = self.arr[:, :, :, start : start + t]  # (H,W,D,T)
-        vol = torch.from_numpy(vol).float().unsqueeze(0).unsqueeze(0)  # (1,1,H,W,D,T)
+        vol = torch.from_numpy(vol).float().unsqueeze(0)  # (1,H,W,D,T)
         return vol, torch.tensor(y, dtype=torch.long)
 
 
@@ -267,7 +312,7 @@ def main():
     )
 
     # Model
-    encoder = build_encoder(seq_len=args.seq_len)
+    encoder = build_encoder(seq_len=15)
     load_encoder_weights(encoder, args.ckpt)
     if hasattr(encoder, "interpolate_time_embed"):
         encoder.interpolate_time_embed(args.seq_len)

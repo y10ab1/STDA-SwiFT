@@ -24,13 +24,14 @@ python examples/infer.py --input /path/to/volume.npy --ckpt ckpt/pretrained.ckpt
 ```bash
 pip install nilearn
 python examples/finetune_haxby.py --ckpt ckpt/pretrained.ckpt \
-  --subject 1 --seq_len 1 --batch_size 2 --epochs 5 --lr 1e-4 --freeze_encoder
+  --subject 1 --seq_len 1 --batch_size 20 --epochs 10 --lr 1e-4
 ```
 
-- Trains a linear head (or full model if you omit `--freeze_encoder`) on Haxby categories
+- Finetunes the encoder on Haxby categories
   using contiguous windows of length `--seq_len` with constant labels and resized to `(96,96,96)`.
 - Requires internet to download Haxby via `nilearn` on first run.
-- You can increase `--seq_len` to leverage temporal context; the script will interpolate the time
+- We highly recommend standardizing the input to `zscore_sample` before training, you can do this by running `clean_img(img, standardize='zscore_sample')` as in the `examples/finetune_haxby.py` script.
+- You can modify `--seq_len` to leverage temporal context; the script will interpolate the time
   embeddings to the requested length.
 
 Both example scripts include a local import fallback so they work out-of-the-box from the repo
