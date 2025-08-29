@@ -2,8 +2,16 @@ import argparse
 import os
 import torch
 
-from stdaswift.models import SwinTransformer4D
-from stdaswift.utils.io import load_input
+# Local import fallback so examples run without package install
+try:
+    from stdaswift.models import SwinTransformer4D
+    from stdaswift.utils.io import load_input
+except Exception:
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).resolve().parents[1]))
+    from stdaswift.models import SwinTransformer4D
+    from stdaswift.utils.io import load_input
 
 
 def detect_seq_len(input_path: str) -> int:

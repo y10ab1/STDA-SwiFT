@@ -20,3 +20,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/brian880825/STDA-SwiFT"
 
+[tool.setuptools.packages.find]
+include = ["stdaswift*"]
+exclude = ["ckpt*", "examples*"]
+

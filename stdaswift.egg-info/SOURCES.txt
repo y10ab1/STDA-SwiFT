@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+stdaswift/__init__.py
+stdaswift.egg-info/PKG-INFO
+stdaswift.egg-info/SOURCES.txt
+stdaswift.egg-info/dependency_links.txt
+stdaswift.egg-info/requires.txt
+stdaswift.egg-info/top_level.txt
+stdaswift/models/__init__.py
+stdaswift/models/patchembedding.py
+stdaswift/models/swin4d_transformer_ver8.py
+stdaswift/utils/__init__.py
+stdaswift/utils/io.py

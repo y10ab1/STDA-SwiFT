@@ -1,3 +1,17 @@
+Metadata-Version: 2.4
+Name: stdaswift
+Version: 0.1.0
+Summary: STDA-SwiFT: 4D Swin Transformer encoder release for fMRI
+Author: brian880825
+Project-URL: Homepage, https://github.com/brian880825/STDA-SwiFT
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: torch>=2.1
+Requires-Dist: numpy>=1.23
+Requires-Dist: monai>=1.3
+Requires-Dist: nibabel>=5.1
+Requires-Dist: einops>=0.7
+
 # STDA-SwiFT (Official Repository)
 
 This is the official repository for the paper:
@@ -10,7 +24,8 @@ It provides the STDA-SwiFT pretrained encoder and a minimal inference example fo
 
 ```bash
 pip install -r requirements.txt
-# Note: You do NOT need to install the package to run the examples.
+# optional: install package locally for imports
+pip install -e .
 ```
 
 ## Quick start
@@ -32,10 +47,6 @@ python examples/finetune_haxby.py --ckpt ckpt/pretrained.ckpt \
 - Requires internet to download Haxby via `nilearn` on first run.
 - You can increase `--seq_len` to leverage temporal context; the script will interpolate the time
   embeddings to the requested length.
-
-Both example scripts include a local import fallback so they work out-of-the-box from the repo
-without running `pip install -e .`. If you prefer package-style imports in your own project,
-you can still `pip install -e .` after cloning.
 
 - `ckpt/pretrained.ckpt` is the pretrained task-fMRI encoder.
 - The script prints the embedding vector shape and a preview of values.
