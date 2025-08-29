@@ -16,6 +16,9 @@ def load_input(path: str, target_shape: Tuple[int, int, int, int]) -> torch.Tens
     h, w, d, t = target_shape
     if path.endswith(".npy"):
         arr = np.load(path)
+    elif path.endswith(".pt"):
+        arr = torch.load(path)
+        arr = arr.numpy()
     else:
         assert nib is not None, "Please install nibabel to read NIfTI files."
         img = nib.load(path)
