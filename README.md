@@ -30,7 +30,7 @@ python examples/finetune_haxby.py --ckpt ckpt/pretrained.ckpt \
 - Finetunes the encoder on Haxby categories
   using contiguous windows of length `--seq_len` with constant labels and resized to `(96,96,96)`.
 - Requires internet to download Haxby via `nilearn` on first run.
-- We highly recommend standardizing the input to `zscore_sample` before training, you can do this by running `clean_img(img, standardize='zscore_sample')` as in the `examples/finetune_haxby.py` script.
+- We highly recommend standardizing the fMRI data to `zscore_sample` before training, you can do this by running `clean_img(img, standardize='zscore_sample')` as in the `examples/finetune_haxby.py` script.
 - You can modify `--seq_len` to leverage temporal context; the script will interpolate the time
   embeddings to the requested length.
 
