@@ -9,8 +9,8 @@ It provides the STDA-SwiFT pretrained encoder and a minimal inference example fo
 ## Install
 
 ```bash
+# Prerequisites: python 3.10
 pip install -r requirements.txt
-# Note: You do NOT need to install the package to run the examples.
 ```
 
 ## Quick start
