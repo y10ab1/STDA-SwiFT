@@ -17,7 +17,6 @@ pip install -r requirements.txt
 
 ```bash
 python examples/infer.py --input /path/to/volume.npy --ckpt ckpt/pretrained.ckpt
-# The script will print the embedding vector shape and a preview of values.
 ```
 
 ## Example: Finetune on Haxby classification
