@@ -24,7 +24,7 @@ python examples/infer.py --input /path/to/volume.npy --ckpt ckpt/pretrained.ckpt
 
 ```bash
 python examples/finetune_haxby.py --ckpt ckpt/pretrained.ckpt \
-  --subject 1 --seq_len 1 --batch_size 20 --epochs 10 --lr 1e-4
+  --subject 1 --seq_len 1 --batch_size 20 --epochs 10 --lr 5e-4
 ```
 
 - The script finetunes the encoder on Haxby categories.
