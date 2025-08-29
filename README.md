@@ -16,6 +16,7 @@ pip install -r requirements.txt
 ## Quick start
 
 ```bash
+# Checking output feature shape
 python examples/infer.py --input /path/to/volume.npy --ckpt ckpt/pretrained.ckpt
 ```
 
