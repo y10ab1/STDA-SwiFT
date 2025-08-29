@@ -19,7 +19,7 @@ pip install -r requirements.txt
 python examples/infer.py --input /path/to/volume.npy --ckpt ckpt/pretrained.ckpt
 ```
 
-## Finetune on Haxby classification (example)
+## Example: Finetune on Haxby classification
 
 ```bash
 python examples/finetune_haxby.py --ckpt ckpt/pretrained.ckpt \
