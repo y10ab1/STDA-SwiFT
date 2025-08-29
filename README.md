@@ -22,9 +22,11 @@ Quick start (auto-detect seq_len from input shape):
 python examples/infer.py --input /path/to/volume.npy --ckpt ckpt/pretrained.ckpt
 ```
 
+- `ckpt/pretrained.ckpt` is the pretrained task-fMRI encoder.
 - The script prints the embedding vector shape and a preview of values.
 - Input may be `.npy` (H,W,D,T) or `.nii/.nii.gz` with 4D data.
  - `--seq_len` is optional; if omitted, the script infers it from input.
+- We recommend padding the input to `(96,96,96,T)` before any further training or inference.
 
 ## Checkpoint format
 
