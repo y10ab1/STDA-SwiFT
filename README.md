@@ -43,8 +43,6 @@ The loader accepts either:
 - `num_heads=(3,6,12,24)`
 - `window_size=(6,6,6,1)`
 
-Time embeddings will be interpolated when `--seq_len` differs from training.
-
 ## Citation
 
 If you find this work useful, please cite:
