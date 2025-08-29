@@ -16,11 +16,10 @@ pip install -e .
 
 ## Usage
 
-Quick start (auto-detect T from input shape):
+Quick start (auto-detect seq_len from input shape):
 
 ```bash
-# set PYTHONPATH for local run
-PYTHONPATH=. python examples/infer.py --input /path/to/volume.npy --ckpt ckpt/pretrained.ckpt
+python examples/infer.py --input /path/to/volume.npy --ckpt ckpt/pretrained.ckpt
 ```
 
 - The script prints the embedding vector shape and a preview of values.
