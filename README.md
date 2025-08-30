@@ -4,7 +4,7 @@ This is the official repository for the paper:
 
 Whole-brain Transferable Representations from Large-Scale fMRI Data Improve Task-Evoked Brain Activity Decoding ([arXiv:2507.22378](https://arxiv.org/abs/2507.22378)).
 
-It provides the STDA-SwiFT pretrained encoder and a minimal inference example for **generating embeddings from 4D fMRI** volumes.
+It provides the self-supervised pretrained 4D fMRI encoder and a minimal inference example for **generating embeddings from 4D fMRI** volumes.
 
 ## Install
 
